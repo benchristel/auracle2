@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr">
+  <head>
+    <meta charset="utf-8">
+    <title>Auracle 2.0</title>
+    <style>
+      body {
+        background-color: #f4f4f4;
+        min-height: 100vh;
+        box-sizing: border-box;
+      }
+
+      body, pre, textarea {
+        font-family: 'Monaco', 'Menlo', 'Roboto Mono', 'Ubuntu Mono', monospace;
+      }
+
+      textarea, pre {
+        font-size: 16px;
+      }
+
+      textarea {
+        border: inset 2px #ddd;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>Auracle 2.0</h1>
+    <p>an industrial-strength word generator.</p>
+    <p>Enter a few words that fit your desired aesthetic. Then press one of the buttons to run a program.</p>
+    <textarea id="input" cols="80" rows="10"></textarea>
+    <div>
+      <button id="generateBtn">Generate similar words</button>
+      <button id="improveBtn">Improve the language model</button>
+      <button id="identifyBtn">Find similar language models</button>
+      <button id="scoreBtn">Score against English model</button>
+      <button id="orthoBtn">Infer orthography</button>
+      <button id="helpBtn">Help</button>
+      <button id="testBtn">Run System Self-Check</button>
+    </div>
+    <pre id="output"></pre>
+    <script type="module" src="static/main.js"></script>
+  </body>
+</html>

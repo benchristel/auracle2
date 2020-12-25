@@ -7,6 +7,6 @@ function sanitize(s) {
   return s
     .toLowerCase()
     .replace('’', "'")
-    .split(/[^a-z'ßäöüáéíóúñ]+/)
+    .split(/[^a-z'ßäöüáéíóúāēīōūñ-]+/)
     .join(" ")
 }
