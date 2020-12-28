@@ -2,11 +2,12 @@ const stdin = require("./stdin.js")
 
 stdin(input => {
   const model = JSON.parse(input)
+  console.log(model.$lengths)
 
   let text = repeat(model.$order, '#')
 
   times(500, () => generateWord(model))
-    .filter((([_, exp]) => exp > -4.5))
+    .filter((([_, exp]) => exp > -1))
     .sort((a, b) => a[1] - b[1]) // expectedness
     .forEach(i => console.log(i))
 })
@@ -24,9 +25,9 @@ function generateWord(model) {
     word += chosen
   } while ((tail = last(order, word)) != boundary)
   word = word.slice(order, word.length - order)
-  const avgLogLikelihoodPerChar = logLikelihood / (word.length + order)
+  const avgLogLikelihoodPerChar = logLikelihood / Math.pow(word.length + order, 1.5)
   const expectedness = avgLogLikelihoodPerChar +
-    Math.log(lengthProb(model, word.length))
+    Math.log(lengthProb(model, word.length)) * 0.1
   return [
     word,
     expectedness,

@@ -13,5 +13,5 @@ helpBtn.addEventListener("click", program(help))
 testBtn.addEventListener("click", program(tests))
 
 function program(p) {
-  return () => output.innerText = p(input.value)
+  return () => output.innerHTML = p(input.value)
 }

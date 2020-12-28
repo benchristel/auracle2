@@ -6,8 +6,6 @@ import {
   summarizeTestResults,
 } from "./test-framework.js"
 
-import "./test-framework.tests.js"
-
 export function tests() {
   return summarizeTestResults(allTestCases.map(runTest))
 }

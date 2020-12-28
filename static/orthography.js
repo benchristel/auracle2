@@ -1,27 +1,24 @@
 import {test, assert, equals} from "./test-framework.js"
 
-const orthographies = {
-  "minimal":             /^[aiuntk]+$/,
-  "Māori":               /^[aeiouāēīōūmnptkgwhr]+$/,
-  "Māori (wh = f)":      /^[aeiouāēīōūmnptkgfwhr]+$/,
-  "toki pona":           /^[aeioutpklswjmn]+$/,
-  "rotokas respelled":   /^[aeioutpkdbgnmñ]+$/,
-  "rotokas":             /^[aeiouāēīōūtpkdbgnmŋ]+$/,
-  "toki pona respelled": /^[aeioutpklswymn]+$/,
-  "Nahuatl respelled":   /^[aeiowtpklsymnx]+$/,
-  "Nahuatl":             /^[aeioutpcqlszhymnx]+$/,
-  "Finnish":             /^[aeiouäöytpkshvlrjmn]+$/,
-  "Japanese rōmaji":     /^[aeiouāēīōūtpckdbgfszjhrymn'-]+$/,
-  "English":             /^[abcdefghijklmnopqrstuvwxyz'-]+$/,
-  "Spanish":             /^[abcdefghijklmnopqrstuvwxyzáéíóúñü'-]+$/,
-  "CHAOS": /.*/,
-}
+// const orthographies = {
+//   "minimal":             /^[aiuntk]+$/,
+//   "Māori":               /^[aeiouāēīōūmnptkgwhr]+$/,
+//   "Māori (wh = f)":      /^[aeiouāēīōūmnptkgfwhr]+$/,
+//   "toki pona":           /^[aeioutpklswjmn]+$/,
+//   "rotokas respelled":   /^[aeioutpkdbgnmñ]+$/,
+//   "rotokas":             /^[aeiouāēīōūtpkdbgnmŋ]+$/,
+//   "toki pona respelled": /^[aeioutpklswymn]+$/,
+//   "Nahuatl respelled":   /^[aeiowtpklsymnx]+$/,
+//   "Nahuatl":             /^[aeioutpcqlszhymnx]+$/,
+//   "Finnish":             /^[aeiouäöytpkshvlrjmn]+$/,
+//   "Japanese rōmaji":     /^[aeiouāēīōūtpckdbgfszjhrymn'-]+$/,
+//   "English":             /^[abcdefghijklmnopqrstuvwxyz'-]+$/,
+//   "Spanish":             /^[abcdefghijklmnopqrstuvwxyzáéíóúñü'-]+$/,
+//   "CHAOS": /.*/,
+// }
 
 export function orthography(rawInput) {
-  const input = sanitize(rawInput)
-
-  return [...Object.entries(orthographies)]
-    .find(([_, regex]) => regex.test(input))[0]
+  return vowelInventory(sanitize(rawInput))
 }
 
 function sanitize(s) {
