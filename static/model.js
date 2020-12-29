@@ -20,43 +20,6 @@ function BaseAssociator({alphabet, context, weight}) {
   }
 }
 
-// function UniformAssociator({alphabet, weight}) {
-//   const NULL_CONTEXT = ""
-//   const _associations = {
-//     [NULL_CONTEXT]: alphabet
-//       .split("")
-//       .reduce((obj, ch) => {
-//         obj[ch] = weight
-//         return obj
-//       }, {})
-//   }
-//   return {
-//     associations,
-//     context,
-//   }
-//
-//   function associations() {
-//     return _associations
-//   }
-//
-//   function context() {
-//     return NULL_CONTEXT
-//   }
-// }
-
-// test("a UniformAssociator", {
-//   "outputs equal probabilities for every letter of the alphabet"() {
-//     const assoc = UniformAssociator({alphabet: "abc", weight: 5})
-//     assert(assoc.associations("foobar"), equals({
-//       "": {
-//         "a": 5,
-//         "b": 5,
-//         "c": 5,
-//       }
-//     }))
-//   }
-// })
-
 // An NGramAssociator looks at N characters of context.
 // N can be zero.
 function NGramAssociator({n, ...args}) {
@@ -64,6 +27,47 @@ function NGramAssociator({n, ...args}) {
 
   function context(text) {
     return leftpad("#", n, last(n, text))
+  }
+}
+
+// A CVAssociator looks only at consonant-vowel patterns.
+function CVAssociator({n, ...args}) {
+  return BaseAssociator({...args, context})
+
+  function context(text) {
+    return leftpad("#", n, last(n, text).split("").map(charClass).join("") + text[text.length - 1])
+  }
+}
+
+function charClass(c) {
+  switch(c) {
+    case "a":
+    case "e":
+    case "i":
+    case "o":
+    case "u":
+    case "y":
+      return "V"
+    case "p":
+    case "t":
+    case "c":
+    case "k":
+    case "q":
+      return "K"
+    case "d":
+    case "b":
+    case "g":
+      return "G"
+    case "l":
+    case "r":
+      return "L"
+    case "s":
+    case "z":
+      return "S"
+    case "h":
+      return "H"
+    default:
+      return "C"
   }
 }
 
@@ -82,7 +86,7 @@ test("an NGramAssociator", {
       equals(expected))
   },
 
-  "ignores characters that aren't in the alphabet"() {
+  "does not predict characters that aren't in the alphabet"() {
     const expected = {
       "": {
         "": 1, // empty string marks the end of a word
@@ -183,12 +187,13 @@ window.Model = Model
 
 export function Model({alphabet}) {
   const associators = [
-    [NGramAssociator({alphabet, n: 0, weight: 0.1}), {}],
-    [NGramAssociator({alphabet, n: 1, weight: 5}), {}],
-    [NGramAssociator({alphabet, n: 2, weight: 10}), {}],
-    [NGramAssociator({alphabet, n: 3, weight: 20}), {}],
-    [SegmentAssociator({alphabet, n: 1, weight: 7}), {}],
-    [SegmentAssociator({alphabet, n: 2, weight: 15}), {}],
+    [NGramAssociator({alphabet, n: 0, weight: 0.001}), {}],
+    // [NGramAssociator({alphabet, n: 1, weight: 50}), {}],
+    [CVAssociator({alphabet, n: 2, weight: 1000}), {}],
+    [NGramAssociator({alphabet, n: 2, weight: 1000}), {}],
+    // [NGramAssociator({alphabet, n: 3, weight: 5000}), {}],
+    // [SegmentAssociator({alphabet, n: 1, weight: 100}), {}],
+    // [SegmentAssociator({alphabet, n: 2, weight: 1000}), {}],
   ]
 
   // pre-load the order-zero associator with all the letters
@@ -201,7 +206,10 @@ export function Model({alphabet}) {
     unlearn,
     predict,
     probability,
+
+    // included for debugging
     debug,
+    possibilities,
   }
 
   function learn(text) {
@@ -225,7 +233,7 @@ export function Model({alphabet}) {
   }
 
   function predict(stimulus) {
-    const poss = associators.map(possibilities(stimulus))
+    const poss = possibilities(stimulus)
     let totalWeight = 0
     for (const p of poss) {
       for (const k in p) {
@@ -243,7 +251,7 @@ export function Model({alphabet}) {
   }
 
   function probability(stimulus, response) {
-    const poss = associators.map(possibilities(stimulus))
+    const poss = possibilities(stimulus)
     let totalWeight = 0
     let responseWeight = 0
     for (const p of poss) {
@@ -256,7 +264,9 @@ export function Model({alphabet}) {
   }
 
   function possibilities(stimulus) {
-    return ([a, mem]) => mem[a.context(stimulus)] || {}
+    return associators.map(([a, mem]) =>
+      mem[a.context(stimulus)] || {}
+    )
   }
 }
 
