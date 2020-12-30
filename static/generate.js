@@ -1,14 +1,11 @@
-import {modelQuality} from "./improve.js"
-
 export function generate() {
   let output = []
   for (let i = 0; i < 200; i++) {
     const w = generateWord()
     output.push([w, logLikelihood(w, model) / w.length])
   }
-  return output
-    .sort((a, b) => b[1] - a[1])
-    .slice(0, 25)
+  return unique(output, o => o[0])
+    .filter(([_, score]) => score > -2.5)
     .map(([w, l]) => w)
     .join("\n")
 }
@@ -33,4 +30,12 @@ export function logLikelihood(text, model) {
     }
   }
   return ret
+}
+
+function unique(xs, by) {
+  const set = {}
+  for (const x of xs) {
+    set[by(x)] = x
+  }
+  return Object.values(set)
 }

@@ -1,12 +1,41 @@
 import {test, assert, equals} from "./test-framework.js"
 import {curry, rename} from "./fp.js"
 
-function BaseAssociator({alphabet, context, weight}) {
+function BaseAssociator({alphabet, context, weight, toString}) {
   weight = weight || 1
   const END_OF_WORD = ""
+  const mem = {}
   return {
+    learn,
+    unlearn,
+    possibilities,
+    reweight,
+    toString,
+
+    // TODO: make private
     associations,
     context,
+  }
+
+  function learn(word) {
+    deepAssign(mem, associations(word))
+  }
+
+  function unlearn(word) {
+    deepUnassign(mem, associations(word))
+  }
+
+  function possibilities(stimulus) {
+    return mem[context(stimulus)] || {}
+  }
+
+  function reweight(fraction) {
+    weight *= fraction
+    for (const prefix in mem) {
+      for (const k in mem[prefix]) {
+        mem[prefix][k] *= fraction
+      }
+    }
   }
 
   function associations(word) {
@@ -22,8 +51,12 @@ function BaseAssociator({alphabet, context, weight}) {
 
 // An NGramAssociator looks at N characters of context.
 // N can be zero.
-function NGramAssociator({n, ...args}) {
-  return BaseAssociator({...args, context})
+export function NGramAssociator({n, alphabet, weight}) {
+  return BaseAssociator({alphabet, weight, context, toString})
+
+  function toString() {
+    return `NGramAssociator(${n}, weight = ${weight})`
+  }
 
   function context(text) {
     return leftpad("#", n, last(n, text))
@@ -31,11 +64,43 @@ function NGramAssociator({n, ...args}) {
 }
 
 // A CVAssociator looks only at consonant-vowel patterns.
-function CVAssociator({n, ...args}) {
-  return BaseAssociator({...args, context})
+export function CVAssociator({n, alphabet, weight}) {
+  return BaseAssociator({alphabet, weight, context, toString})
+
+  function toString() {
+    return `CVAssociator(${n}, weight = ${weight})`
+  }
 
   function context(text) {
-    return leftpad("#", n, last(n, text).split("").map(charClass).join("") + text[text.length - 1])
+    return leftpad("#", n, last(n, text).split("").map(charClass).join(""))
+  }
+}
+
+export function RandomAssociator({alphabet, weight}) {
+  const poss = alphabet.split("").reduce((obj, ch) => {
+    obj[ch] = weight
+    return obj
+  }, {})
+
+  // words have to end at some point
+  poss[""] = weight * 4
+
+  return {
+    learn,
+    unlearn,
+    possibilities,
+    reweight,
+    toString,
+  }
+
+  function learn() {}
+  function unlearn() {}
+  function possibilities() {
+    return poss
+  }
+  function reweight() {}
+  function toString() {
+    return `RandomAssociator(weight = ${weight})`
   }
 }
 
@@ -129,23 +194,6 @@ test("an NGramAssociator", {
   },
 })
 
-function SegmentAssociator({n, ...args}) {
-  return BaseAssociator({...args, context})
-
-  function context(text) {
-    let i
-    let vowel = null
-    let segments = 0
-    for (i = text.length - 1; i >= 0; i--) {
-      if (isVowel(text[i]) !== vowel) {
-        vowel = isVowel(text[i])
-        if (++segments > n) break;
-      }
-    }
-    return text.slice(i + 1)
-  }
-}
-
 test("SegmentAssociator", {
   "returns '' as the context when n = 0"() {
     assert(SegmentAssociator({alphabet: "a", n: 0}).context(""), equals(""))
@@ -185,22 +233,7 @@ function isVowel(c) {
 
 window.Model = Model
 
-export function Model({alphabet}) {
-  const associators = [
-    [NGramAssociator({alphabet, n: 0, weight: 0.001}), {}],
-    // [NGramAssociator({alphabet, n: 1, weight: 50}), {}],
-    [CVAssociator({alphabet, n: 2, weight: 1000}), {}],
-    [NGramAssociator({alphabet, n: 2, weight: 1000}), {}],
-    // [NGramAssociator({alphabet, n: 3, weight: 5000}), {}],
-    // [SegmentAssociator({alphabet, n: 1, weight: 100}), {}],
-    // [SegmentAssociator({alphabet, n: 2, weight: 1000}), {}],
-  ]
-
-  // pre-load the order-zero associator with all the letters
-  // of the alphabet, to ensure we can always make a
-  // prediction
-  deepAssign(associators[0][1], associators[0][0].associations(alphabet))
-
+export function Model({associators}) {
   return {
     learn,
     unlearn,
@@ -208,28 +241,15 @@ export function Model({alphabet}) {
     probability,
 
     // included for debugging
-    debug,
     possibilities,
   }
 
-  function learn(text) {
-    text.split(/\s+/).forEach(word => {
-      associators.forEach(([a, mem]) => {
-        deepAssign(mem, a.associations(word))
-      })
-    })
+  function learn(word) {
+    associators.forEach(a => a.learn(word))
   }
 
-  function unlearn(text) {
-    text.split(/\s+/).forEach(word => {
-      associators.forEach(([a, mem]) => {
-        deepUnassign(mem, a.associations(word))
-      })
-    })
-  }
-
-  function debug() {
-    return associators.map(([_, mem]) => mem)
+  function unlearn(word) {
+    associators.forEach(a => a.learn(word))
   }
 
   function predict(stimulus) {
@@ -264,32 +284,9 @@ export function Model({alphabet}) {
   }
 
   function possibilities(stimulus) {
-    return associators.map(([a, mem]) =>
-      mem[a.context(stimulus)] || {}
-    )
+    return associators.map(a => a.possibilities(stimulus))
   }
 }
-
-test("a Model", {
-  "predicts characters uniformly at random given no observations"() {
-    const m = Model({
-      alphabet: "abc"
-    })
-    const predictions = new Set()
-    for (let i = 0; i < 30; i++) {
-      predictions.add(m.predict(""))
-    }
-    assert(predictions, hasMember("a"))
-    assert(predictions, hasMember("b"))
-    assert(predictions, hasMember("c"))
-  },
-
-  "learns new words"() {
-    const m = Model({alphabet: "abcdefghijklmnopqrstuvwxyz"})
-    m.learn("foobar")
-    m.learn("y-combinator")
-  }
-})
 
 const hasMember = rename("hasMember",
   curry((m, set) => set.has(m)),

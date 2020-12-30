@@ -1,36 +1,62 @@
-import {Model} from "./model.js"
+import {Model, NGramAssociator, CVAssociator, RandomAssociator} from "./model.js"
 import words from "./corpora/words.js"
 
-window.model = Model({alphabet: "abcdefghijklmnopqrstuvwxyz"})
+const alphabet = "abcdefghijklmnopqrstuvwxyz"
 
-// Preload the model. If we don't do this, it starts at a
-// local maximum where any single word it learns tends to
-// make it overfit that particular word and therefore
-// perform worse than pure randomness.
-for (const w of words) {
-  model.learn(w)
+const associators = makeAssociators()
+
+function makeAssociators() {
+  return [
+    RandomAssociator({alphabet, weight: 1}),
+    // NGramAssociator({alphabet, n: 0, weight: 1}),
+    // NGramAssociator({alphabet, n: 1, weight: 1}),
+    // NGramAssociator({alphabet, n: 2, weight: 4}),
+    // NGramAssociator({alphabet, n: 3, weight: 16}),
+    CVAssociator({alphabet, n: 2, weight: 1}),
+    // CVAssociator({alphabet, n: 3, weight: 4}),
+    // CVAssociator({alphabet, n: 4, weight: 16}),
+    // TODO: more char class associators would help smooth
+    // out the letter frequency distro
+  ]
 }
 
 const delta = 1e-4
 
+window.associators = associators
+window.model = Model({associators})
+window.words = words
 window.improve = improve
+window.improveCount = 0
+window.normalize = normalize
+
+function normalize(o) {
+  let total = 0
+  for (let k in o) {
+    total += o[k]
+  }
+  let ret = {}
+  for (let k in o) {
+    ret[k] = o[k] / total
+  }
+  return ret
+}
 
 export function improve(objectiveText) {
-  words.sort(() => Math.random() - 0.5)
   if (objectiveText === "") return "error: please enter some text"
-  let currentAccuracy = modelQuality(objectiveText, model)
+  improveCount++
+
+  let currentAccuracy = modelQuality(objectiveText, model).number
   for (const w of words) {
-    // reinforceWord: while (true) {
-      model.learn(w)
-      const newAccuracy = modelQuality(objectiveText, model)
-      if (newAccuracy > currentAccuracy + delta) {
-        console.log(`${w} improved accuracy by ${newAccuracy - currentAccuracy}, to ${newAccuracy}`)
+    for (const a of associators.slice(1)) {
+      a.learn(w)
+      const newAccuracy = modelQuality(objectiveText, model).number
+      if (newAccuracy > currentAccuracy) {
+        console.log(`${w} +${newAccuracy - currentAccuracy} ${a}`)
         currentAccuracy = newAccuracy
       } else {
-        model.unlearn(w)
-        // break reinforceWord;
+        a.unlearn(w)
       }
-    // }
+    }
   }
   return visualizeAccuracy(model, objectiveText)
 }
@@ -67,27 +93,19 @@ function colorProb(ch, p) {
   return `<span style="color: ${color}" data-p="${p}">${ch || "#"}</span>`
 }
 
-export function modelQuality(text, model) {
-  let minLogProb = 0
+function modelQuality(text, model) {
   let logLikelihood = 0
   const words = text.split(/\s+/)
   for (const w of words) {
     for (let i = 0; i <= w.length; i++) {
       const ch = w[i] || ""
       const prefix = w.slice(0, i)
-      // Use the minimum probability for a character to
-      // judge the model's quality. Otherwise, the model
-      // will overfit characters that are easy to overfit
-      // and "dump" others that are actually more
-      // distinctive features of the target language!
       const logProb = Math.log(model.probability(prefix, ch))
       logLikelihood += logProb
-      minLogProb = Math.min(minLogProb, logProb)
     }
   }
-  return minLogProb * 5 + logLikelihood
-}
-
-function reverse(s) {
-  return [...s].reverse().join("")
+  // TODO: simplify
+  return {
+    number: logLikelihood,
+  }
 }
