@@ -194,39 +194,6 @@ test("an NGramAssociator", {
   },
 })
 
-test("SegmentAssociator", {
-  "returns '' as the context when n = 0"() {
-    assert(SegmentAssociator({alphabet: "a", n: 0}).context(""), equals(""))
-  },
-
-  "returns preceding vowels as the context when n = 1"() {
-    let associator = SegmentAssociator({alphabet: "ab", n: 1})
-    assert(associator.context("ba"), equals("a"))
-    assert(associator.context("baa"), equals("aa"))
-  },
-
-  "returns preceding consonants as the context when n = 1"() {
-    let associator = SegmentAssociator({alphabet: "ab", n: 1})
-    assert(associator.context("ab"), equals("b"))
-    assert(associator.context("abb"), equals("bb"))
-  },
-
-  "returns two segments as the context when n = 2"() {
-    let associator = SegmentAssociator({alphabet: "abc", n: 2})
-    assert(associator.context("ab"), equals("ab"))
-    assert(associator.context("bac"), equals("ac"))
-    assert(associator.context("baacc"), equals("aacc"))
-    assert(associator.context("ba"), equals("ba"))
-    assert(associator.context("aca"), equals("ca"))
-    assert(associator.context("accaa"), equals("ccaa"))
-  },
-
-  "returns 3 segments as the context when n = 3"() {
-    let associator = SegmentAssociator({alphabet: "abc", n: 3})
-    assert(associator.context("baccaa"), equals("accaa"))
-  },
-})
-
 function isVowel(c) {
   return contains(c, "aeiouyw`¯´ˆ")
 }
