@@ -206,6 +206,8 @@ export function Model({associators}) {
     unlearn,
     predict,
     probability,
+    associators,
+    modelQuality,
 
     // included for debugging
     possibilities,
@@ -252,6 +254,23 @@ export function Model({associators}) {
 
   function possibilities(stimulus) {
     return associators.map(a => a.possibilities(stimulus))
+  }
+
+  function modelQuality(text, model) {
+    let logLikelihood = 0
+    const words = text.split(/\s+/)
+    for (const w of words) {
+      for (let i = 0; i <= w.length; i++) {
+        const ch = w[i] || ""
+        const prefix = w.slice(0, i)
+        const logProb = Math.log(model.probability(prefix, ch))
+        logLikelihood += logProb
+      }
+    }
+    // TODO: simplify
+    return {
+      number: logLikelihood,
+    }
   }
 }
 

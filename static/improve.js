@@ -1,5 +1,6 @@
 import {Model, NGramAssociator, CVAssociator, RandomAssociator} from "./model.js"
 import words from "./corpora/words.js"
+import {not, assert, isGreaterThan} from "./test-framework.js"
 
 const alphabet = "abcdefghijklmnopqrstuvwxyz"
 
@@ -26,7 +27,6 @@ window.associators = associators
 window.model = Model({associators})
 window.words = words
 window.improve = improve
-window.improveCount = 0
 window.normalize = normalize
 
 function normalize(o) {
@@ -41,15 +41,30 @@ function normalize(o) {
   return ret
 }
 
-export function improve(objectiveText) {
-  if (objectiveText === "") return "error: please enter some text"
-  improveCount++
+test("improve", {
+  "it accounts for observations"() {
+    const model = Model({associators: makeAssociators()})
+    improve("fo", model, ["foo"])
+    assert(model.probability("fo", "o"), isGreaterThan(0.05))
+  },
+  "it tolerates capital letters"() {
+    const model1 = Model({associators: makeAssociators()})
+    improve("FO", model1, ["foo"])
+    const model2 = Model({associators: makeAssociators()})
+    improve("fo", model2, ["foo"])
+    assert(model1.probability("fo", "o"), equals(model2.probability("fo", "o")))
+  }
+})
 
-  let currentAccuracy = modelQuality(objectiveText, model).number
+export function improve(rawObjectiveText, _model=window.model, words=window.words) {
+  const objectiveText = rawObjectiveText.toLowerCase()
+  if (objectiveText === "") return "error: please enter some text"
+
+  let currentAccuracy = modelQuality(objectiveText, _model).number
   for (const w of words) {
-    for (const a of associators.slice(1)) {
+    for (const a of _model.associators.slice(1)) {
       a.learn(w)
-      const newAccuracy = modelQuality(objectiveText, model).number
+      const newAccuracy = modelQuality(objectiveText, _model).number
       if (newAccuracy > currentAccuracy) {
         console.log(`${w} +${newAccuracy - currentAccuracy} ${a}`)
         currentAccuracy = newAccuracy
@@ -58,7 +73,7 @@ export function improve(objectiveText) {
       }
     }
   }
-  return visualizeAccuracy(model, objectiveText)
+  return visualizeAccuracy(_model, objectiveText)
 }
 
 function visualizeAccuracy(model, objectiveText) {

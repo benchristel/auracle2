@@ -1,8 +1,9 @@
-export function generate() {
+export function generate(_, _model=window.model) {
+  console.log(_model, _model === window.model)
   let output = []
   for (let i = 0; i < 200; i++) {
-    const w = generateWord()
-    output.push([w, logLikelihood(w, model) / w.length])
+    const w = generateWord(_model)
+    output.push([w, logLikelihood(w, _model) / w.length])
   }
   return unique(output, o => o[0])
     .filter(([_, score]) => score > -2.5)
@@ -10,7 +11,7 @@ export function generate() {
     .join("\n")
 }
 
-function generateWord() {
+function generateWord(model) {
   let word = ""
   let c
   while ((c = model.predict(word)) !== "") {

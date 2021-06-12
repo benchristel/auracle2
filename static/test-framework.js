@@ -231,6 +231,17 @@ test("equals() and not()", {
   }
 })
 
+export const isGreaterThan = rename("isGreaterThan", curry((referencePoint, subject) =>
+  subject > referencePoint))
+
+test("isGreaterThan", {
+  "it compares numbers"() {
+    assert(1, isGreaterThan(0))
+    assert(1, not(isGreaterThan(1)))
+    assert(0, not(isGreaterThan(1)))
+  }
+})
+
 function visualize(obj) {
   if (Array.isArray(obj)) {
     return `[${obj.map(visualize).join(", ")}]`
